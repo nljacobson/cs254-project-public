@@ -12,13 +12,15 @@ def drop_table():
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS ADD_health")
 
+
 def create_data_table():
     ''' Creates empty db
     '''
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
-    cursor.execute("CREATE TABLE ADD_health" +
-                   ")")
+    cursor.execute("CREATE TABLE ADD_health (AID NUMERIC)")
+
+
 def fetch_data():
     ''' returns all rows in db file
     '''
@@ -27,6 +29,13 @@ def fetch_data():
     rows = cursor.execute("SELECT * FROM ADD_health").fetchall()
     df = pd.DataFrame(rows)
     return df
+
+
+def insert_column(col_name):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("ALTER TABLE ADD_health ADD {} NUMERIC".format(col_name))
+
 
 def insert_data():
     '''Read and insert all data into the db file 
