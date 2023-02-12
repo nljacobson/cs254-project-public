@@ -6,6 +6,29 @@ import glob
 db_file = "ADD_health.db"
 
 def drop_table():
+    ''' Drops existing db file
+    '''
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS ADD_health")
+
+def create_data_table():
+    ''' Creates empty db
+    '''
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("CREATE TABLE ADD_health" +
+                   ")")
+def fetch_data():
+    ''' returns all rows in db file
+    '''
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    rows = cursor.execute("SELECT * FROM ADD_health").fetchall()
+    df = pd.DataFrame(rows)
+    return df
+
+def insert_data():
+    '''Read and insert all data into the db file 
+    '''
+    pass 
