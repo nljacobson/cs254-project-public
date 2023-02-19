@@ -19,6 +19,7 @@ def create_data_table():
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     cursor.execute("CREATE TABLE ADD_health (AID NUMERIC)")
+    return conn
 
 
 def fetch_data():
@@ -39,5 +40,17 @@ def insert_column(col_name):
 
 def insert_data():
     '''Read and insert all data into the db file 
+    
     '''
-    pass 
+    wave_one_features = ["AID", "S59E", "S45A", "S45C", "S62M", "H1FS11", "H1TS3", "H1PF10", "H1PF14",\
+                        "H1PF16", "H1DA2", "H1IR3", "H1SE4", "PC40", "H1EE5", "H1EE7", "PA21", \
+                        "PA56", "H1IR12", "H1TO50"]
+    #Add the wave one DB 
+    df = pd.read_csv('data/wave_1/21600-0001-Data.tsv', sep='\t', header=0, low_memory=False, usecols=wave_one_features)
+    
+    conn = sqlite3.connect(db_file)
+    drop_table()
+    db = df.to_sql("ADD_health.db", con = conn)
+
+# create_data_table()
+# insert_data()
