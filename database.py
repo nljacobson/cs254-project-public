@@ -2,6 +2,7 @@ import sqlite3
 import string
 import pandas as pd
 import glob
+from os.path import isfile
 
 db_file = "ADD_health.db"
 
@@ -27,8 +28,7 @@ def fetch_data():
     '''
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
-    rows = cursor.execute("SELECT * FROM ADD_health").fetchall()
-    df = pd.DataFrame(rows)
+    df = pd.read_sql("SELECT * FROM ADD_health", con = conn)
     return df
 
 
@@ -46,11 +46,33 @@ def insert_data():
                         "H1PF16", "H1DA2", "H1IR3", "H1SE4", "PC40", "H1EE5", "H1EE7", "PA21", \
                         "PA56", "H1IR12", "H1TO50"]
     #Add the wave one DB 
-    df = pd.read_csv('data/wave_1/21600-0001-Data.tsv', sep='\t', header=0, low_memory=False, usecols=wave_one_features)
-    
+    df = pd.read_csv('data/wave_1/21600-0001-Data.tsv', sep='\t', header=0, low_memory=False,usecols=wave_one_features)
     conn = sqlite3.connect(db_file)
     drop_table()
-    db = df.to_sql("ADD_health.db", con = conn)
+    db = df.to_sql("ADD_health", con = conn)
 
-# create_data_table()
-# insert_data()
+
+def make_column_boolean(col_name, threshold):
+    '''
+    This function takes column col_name, removes it, and adds a column of boolean values
+    that represent if the entry was above a certain threshold
+
+    PARAMS
+    col_name = header of column to be altered
+    threshold = value on which the data is split: 0 is at or below, 1 is above
+
+    RETURN
+    None
+    '''
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    # Update each value
+    false_cmd = '''UPDATE ADD_health SET %s = 0 WHERE %s < %s;''' % (col_name, col_name, threshold)
+    cursor.execute(false_cmd)
+    true_cmd = '''UPDATE ADD_health SET %s = 1 WHERE %s >= %s;''' % (col_name, col_name, threshold)
+    cursor.execute(true_cmd)
+    conn.commit()
+
+if not isfile(db_file):
+    create_data_table()
+insert_data()
