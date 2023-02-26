@@ -33,7 +33,7 @@ class Solution:
         
         while not_finished:
             new_feature = np.random.choice(f.wave_one_features[1:] + f.wave_two_features[1:])
-            if self.is_already_in_genome(new_feature) == False:
+            if self.is_already_in_genome(new_gen) == False:
                 new_gen[np.random.randint(self.cluster_size)] = new_feature
                 not_finished = False
         return new_gen
@@ -50,6 +50,7 @@ class ParallelHillClimber:
         self.data = self.gen_df()
 
     def gen_df(self):
+        '''creates data base'''
         df1 = pd.read_csv('data/wave_1/21600-0001-Data.tsv', sep='\t', header=0, low_memory=False, usecols=f.wave_one_features)
         df2 = pd.read_csv('data/wave_2/21600-0005-Data.tsv', sep='\t', header=0, low_memory=False, usecols=f.wave_two_features)
         df4 = pd.read_csv('data/wave_4/21600-0022-Data.tsv', sep='\t', header=0, low_memory=False, usecols=f.wave_four_outcomes)
@@ -72,12 +73,14 @@ class ParallelHillClimber:
         return self.best.fitness 
 
     def record_best(self, curr_gen):
+        '''records best genome in the fitness file'''
         self.best = sorted(self.population, key=lambda x: x.fitness, reverse=True)[0]
         f = open(self.fitness_file, "a")
         f.write("{},{},{}\n".format(curr_gen, self.best.fitness, self.best.genome))
         f.close()
 
     def evolve_one_generation(self):   
+        '''does one generation of evolution'''
         for solution in self.population:    
             new_genome = self.mutate(solution)
             new_fitness = self.get_fitness(new_genome)
@@ -99,16 +102,20 @@ class ParallelHillClimber:
         return population
 
     def mutate(self, solution):
-        '''mutates one cluster of features'''
+        '''mutates one the genome of a group of features
+        returns: mutated genome'''
         new_genome = solution.mutate()
         return new_genome
 
     def get_fitness(self, genome):
+        '''get the preformance of a given genome 
+        for the ML model of interest (currently decision tree classifier
+        returns: preformance score'''
         x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = 0)
         decision_tree= DecisionTreeClassifier(random_state= 0)
         decision_tree.fit(x_train, y_train)
         score= decision_tree.score(x_test, y_test)
         return score 
 
-phc = ParallelHillClimber(pop_size=1000, num_gens=500, cluster_size=10,fitness_file="fitness.csv")
+phc = ParallelHillClimber(pop_size=2, num_gens=2, cluster_size=10,fitness_file="fitness.csv")
 best = phc.evolve()
