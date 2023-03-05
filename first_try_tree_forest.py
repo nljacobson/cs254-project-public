@@ -154,7 +154,7 @@ y_test_f = y_test.to_numpy().reshape(y_test.shape[0])
 random_forest=  RandomForestClassifier(n_estimators= 3000, criterion='gini', min_samples_split= 6)
 fitted_data_forest= random_forest.fit(x_train, y_train_f)
 score_forest= random_forest.score(x_test, y_test_f)
-score_forest
+print(score_forest)
 
 
 

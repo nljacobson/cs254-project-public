@@ -32,6 +32,23 @@ def fetch_data():
     return df
 
 
+def fetch_features(features):
+    '''
+    Returns a dataframe containing all features in argument "features",
+    which should be a list of strings containing column heads
+    '''
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    sql_command = "Select " # Builds sql command using array of features passed in
+    for feature in features:
+        sql_command += str(feature) + ", "
+    sql_command.rstrip()  # deletes final space
+    sql_command.rstrip()  # deletes final comma
+    sql_command += " FROM ADD_health"
+    df = pd.read_sql(sql_command, con = conn)
+    return df
+
+
 def insert_column(col_name):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
@@ -72,6 +89,7 @@ def make_column_boolean(col_name, threshold):
     true_cmd = '''UPDATE ADD_health SET %s = 1 WHERE %s >= %s;''' % (col_name, col_name, threshold)
     cursor.execute(true_cmd)
     conn.commit()
+
 
 if not isfile(db_file):
     create_data_table()
