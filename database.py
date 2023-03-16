@@ -19,7 +19,7 @@ def create_data_table():
     '''
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
-    cursor.execute("CREATE TABLE ADD_health (AID NUMERIC)")
+    cursor.execute("CREATE TABLE ADD_health")
     return conn
 
 
