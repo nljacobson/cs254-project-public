@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
+np.random.seed(0)
 
 
 class Solution:
@@ -47,9 +48,10 @@ class Solution:
 
 
 class ParallelHillClimber:
-    def __init__(self, pop_size, num_gens, cluster_size, fitness_file, seed):
+    def __init__(self, classifier, pop_size, num_gens, cluster_size, fitness_file, seed):
         np.random.seed(seed)
         os.system("del fitness.csv") 
+        self.classifier= classifier 
         self.pop_size = pop_size
         self.num_gens = num_gens
         self.cluster_size = cluster_size
@@ -129,11 +131,20 @@ class ParallelHillClimber:
         '''get the preformance of a given genome 
         for the ML model of interest (currently decision tree classifier
         returns: preformance score'''
-        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = 0)                                  
-        decision_tree= RandomForestClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
-        decision_tree.fit(x_train, np.ravel(y_train))
-        score= decision_tree.score(x_test, y_test)
+        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = 0) 
+        if self.classifier== 'tree':
+            decision_tree= DecisionTreeClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+            decision_tree.fit(x_train, y_train)
+            score= decision_tree.score(x_test, y_test)
+        elif self.classifier== 'forest':
+            random_forest= RandomForestClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2])
+            random_forest.fit(x_train, np.ravel(y_train))
+            score= decision_tree.score(x_test, y_test)
         return score 
 
-phc = ParallelHillClimber(pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
-best = phc.evolve()
+phc_d = ParallelHillClimber(classifier= 'tree', pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
+phc_f = ParallelHillClimber(classifier= 'forest', pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
+best_d = phc_d.evolve()
+best_f = phc_f.evolve()
+
+
