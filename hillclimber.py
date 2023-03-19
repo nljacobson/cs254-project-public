@@ -32,9 +32,13 @@ class Solution:
     
     def mutate(self):
         new_hyperparams = [self.min_samples_leaf + np.random.randint(-2,2), self.min_samples_split+ np.random.randint(-2,2),self.max_features+ np.random.randint(-2,2)]
+        if new_hyperparams[2] > self.cluster_size:
+            new_hyperparams[2] = self.cluster_size -1
         for i in range(len(new_hyperparams)):
             if new_hyperparams[i] <= 1:
                 new_hyperparams[i] = 2
+            if new_hyperparams[i] > 100:
+                new_hyperparams[i] = 100
         new_gen = self.genome.copy()
         not_finished = True 
         
@@ -48,8 +52,9 @@ class Solution:
 
 class ParallelHillClimber:
     def __init__(self, pop_size, num_gens, cluster_size, fitness_file, seed):
+        self.seed = seed 
         np.random.seed(seed)
-        os.system("del fitness.csv") 
+        # os.system("del fitness.csv") 
         self.pop_size = pop_size
         self.num_gens = num_gens
         self.cluster_size = cluster_size
@@ -69,13 +74,15 @@ class ParallelHillClimber:
 
         data_all1= data_all.replace(r'^\s*$',np.nan, regex=True)
         data_all1= data_all1.astype(float)
-
+        data_all1.loc[data_all1['H4TO5'] >=25, 'H4TO5'] = 30
+        data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
+        data_all1.loc[data_all1['H4TO5'] <5, 'H4TO5'] = 0
         for col in data_all1:
             data_all1[col].fillna(data_all1[col].mode()[0], inplace=True)
         return data_all1
     
     def evolve(self):
-        f = open(self.fitness_file, "a")
+        f = open(self.fitness_file, "w")
         f.write("{},{},{},{},{},{}\n".format("curr_gen", "fitness", "genome","min_samples_leaf", "min_samples_split", "max_features"))
         f.close()
         self.population = self.create_initial_population()
@@ -111,7 +118,7 @@ class ParallelHillClimber:
         for i in range(self.pop_size):
             min_samples_leaf=np.random.randint(2,100)
             min_samples_split=np.random.randint(3,100)
-            max_features=np.random.randint(2,200)
+            max_features=np.random.randint(2,self.cluster_size)
             genome = list(np.random.choice(self.all_features, size = self.cluster_size, replace = False))
             fitness = self.get_fitness(genome, [min_samples_leaf,min_samples_split, max_features])
             sln = Solution(self.cluster_size, fitness =fitness,min_samples_leaf=min_samples_leaf,min_samples_split=min_samples_split, max_features=max_features )
@@ -129,11 +136,10 @@ class ParallelHillClimber:
         '''get the preformance of a given genome 
         for the ML model of interest (currently decision tree classifier
         returns: preformance score'''
-        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = 0)                                  
-        decision_tree= RandomForestClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+
+        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = self.seed)                                  
+        decision_tree= RandomForestClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
         decision_tree.fit(x_train, np.ravel(y_train))
         score= decision_tree.score(x_test, y_test)
         return score 
 
-phc = ParallelHillClimber(pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
-best = phc.evolve()
