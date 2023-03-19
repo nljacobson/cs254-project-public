@@ -92,4 +92,4 @@ def regenerate_all_classifiers():
         # make_conf_matrix(y_test, y_pred_test, c[-12:-10], seed)
 
 
-regenerate_all_classifiers()
+plot_all_data_over_time()
