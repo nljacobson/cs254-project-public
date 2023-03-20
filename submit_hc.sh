@@ -12,4 +12,4 @@
 # Maximum runtime of 2 hours
 #SBATCH --time=20:00:00
 
-python begin_hc.py $1 $2 
+python begin_hc.py $1 $2 $3

@@ -13,7 +13,7 @@ from sklearn.preprocessing import LabelBinarizer
 
 
 def plot_all_data_over_time():
-    csvs = glob("hc_data/*")
+    csvs = glob("hc_data/r*")
     NUM_COLORS = len(csvs)
     cm = plt.get_cmap('nipy_spectral')
     fig = plt.figure()
@@ -74,22 +74,22 @@ def make_conf_matrix(y_test, y_pred_test, size, seed):
     ax.set_ylabel('True Label', fontsize=15)
     ax.set_yticklabels(['Nonsmoker', 'Casual Smoker', 'Daily Smoker'], rotation=0)
     fig1= plot.get_figure()
-    fig1.savefig("hc_plots/seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
+    fig1.savefig("hc_plots/dt_seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
 
 def make_ROC_plot(y_train, y_test):
     pass 
+
 def regenerate_all_classifiers():
-    csvs = glob("hc_data/*")
+    csvs = glob("hc_data/d*")
     seed = int(csvs[0][-5])
     for c in csvs:
         file = open(c, "r")
-        file.readline()
         line = file.readlines()[-1]
         features = [feature.strip("' ") for feature in line.split("[")[1].split("]")[0].split(",")]
         hyper_params = [int(n) for n in line.split("[")[1].split("]")[1].split(",")[1:]]
         
-        y_test, y_pred_test, y_train = regenerate_classifier(features, seed, hyper_params, )
-        # make_conf_matrix(y_test, y_pred_test, c[-12:-10], seed)
+        y_test, y_pred_test, y_train = regenerate_classifier(features, seed, hyper_params)
+        make_conf_matrix(y_test, y_pred_test, c[-12:-10], seed)
 
 
-plot_all_data_over_time()
+regenerate_all_classifiers()

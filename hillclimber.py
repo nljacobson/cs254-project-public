@@ -51,8 +51,9 @@ class Solution:
 
 
 class ParallelHillClimber:
-    def __init__(self, pop_size, num_gens, cluster_size, fitness_file, seed):
+    def __init__(self, pop_size, num_gens, cluster_size, fitness_file, seed, ml_model):
         self.seed = seed 
+        self.ml_model = ml_model
         np.random.seed(seed)
         # os.system("del fitness.csv") 
         self.pop_size = pop_size
@@ -75,8 +76,10 @@ class ParallelHillClimber:
         data_all1= data_all.replace(r'^\s*$',np.nan, regex=True)
         data_all1= data_all1.astype(float)
         data_all1.loc[data_all1['H4TO5'] >=25, 'H4TO5'] = 30
+        data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
         data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
         data_all1.loc[data_all1['H4TO5'] <5, 'H4TO5'] = 0
+        data_all1.dropna(subset=['H4TO5'])
         for col in data_all1:
             data_all1[col].fillna(data_all1[col].mode()[0], inplace=True)
         return data_all1
@@ -136,10 +139,15 @@ class ParallelHillClimber:
         '''get the preformance of a given genome 
         for the ML model of interest (currently decision tree classifier
         returns: preformance score'''
-
-        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = self.seed)                                  
-        decision_tree= RandomForestClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
-        decision_tree.fit(x_train, np.ravel(y_train))
-        score= decision_tree.score(x_test, y_test)
+        
+        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = self.seed)         
+        if self.ml_model == "random_forest":                         
+            rf= RandomForestClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+            rf.fit(x_train, np.ravel(y_train))
+            score= rf.score(x_test, y_test)
+        if self.ml_model == "decision_tree":    
+            decision_tree= DecisionTreeClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+            decision_tree.fit(x_train, np.ravel(y_train))
+            score= decision_tree.score(x_test, y_test)
         return score 
 
