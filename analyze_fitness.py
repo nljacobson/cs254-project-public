@@ -9,6 +9,7 @@ import csv
 import features as f 
 import seaborn as sns
 from sklearn.metrics import RocCurveDisplay
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelBinarizer
 
 
@@ -32,7 +33,7 @@ def plot_all_data_over_time():
     plt.xlabel("Evolutionary Time")
     plt.ylabel("Fitness (Score)")
     plt.title("Random F. Evolution Over Time")
-    plt.savefig("evolution_overtime")
+    plt.savefig("rf_evolution_overtime")
 
 def gen_df():
     '''creates data base'''
@@ -45,10 +46,13 @@ def gen_df():
 
     data_all1= data_all.replace(r'^\s*$',np.nan, regex=True)
     data_all1= data_all1.astype(float)
+    
     data_all1.loc[data_all1['H4TO5'] >=25, 'H4TO5'] = 30
+    data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
     data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
     data_all1.loc[data_all1['H4TO5'] <5, 'H4TO5'] = 0
-
+    data_all1.dropna(subset=['H4TO5'])
+    
     for col in data_all1:
         data_all1[col].fillna(data_all1[col].mode()[0], inplace=True)
     return data_all1
@@ -68,28 +72,28 @@ def make_conf_matrix(y_test, y_pred_test, size, seed):
     ax = plt.axes()
     plt.figure()
     plot= sns.heatmap(matrix_df, annot=True, fmt='g', ax=ax, cmap="magma")
-    ax.set_title('Confusion Matrix: Decision Tree')
+    ax.set_title('Confusion Matrix: Random Forest')
     ax.set_xlabel('Predicted label', fontsize=15)
     ax.set_xticklabels(['Nonsmoker', 'Casual Smoker', 'Daily Smoker'], rotation=45)
     ax.set_ylabel('True Label', fontsize=15)
     ax.set_yticklabels(['Nonsmoker', 'Casual Smoker', 'Daily Smoker'], rotation=0)
     fig1= plot.get_figure()
-    fig1.savefig("hc_plots/dt_seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
+    fig1.savefig("hc_plots/rf_seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
 
 def make_ROC_plot(y_train, y_test):
     pass 
 
 def regenerate_all_classifiers():
-    csvs = glob("hc_data/d*")
+    csvs = glob("hc_data/r*")
     seed = int(csvs[0][-5])
     for c in csvs:
         file = open(c, "r")
         line = file.readlines()[-1]
         features = [feature.strip("' ") for feature in line.split("[")[1].split("]")[0].split(",")]
         hyper_params = [int(n) for n in line.split("[")[1].split("]")[1].split(",")[1:]]
-        
+        print(c)
         y_test, y_pred_test, y_train = regenerate_classifier(features, seed, hyper_params)
         make_conf_matrix(y_test, y_pred_test, c[-12:-10], seed)
 
 
-regenerate_all_classifiers()
+plot_all_data_over_time()
