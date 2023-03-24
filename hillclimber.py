@@ -1,5 +1,8 @@
 import numpy as np 
-import copy 
+import copy
+
+from sklearn.linear_model import LogisticRegression
+
 import features as f 
 import pandas as pd 
 import sklearn as sk
@@ -10,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 
-np.random.seed(0)
+from logistic_regression import hc_logistic_regression
 
 
 class Solution:
@@ -33,9 +36,13 @@ class Solution:
     
     def mutate(self):
         new_hyperparams = [self.min_samples_leaf + np.random.randint(-2,2), self.min_samples_split+ np.random.randint(-2,2),self.max_features+ np.random.randint(-2,2)]
+        if new_hyperparams[2] > self.cluster_size:
+            new_hyperparams[2] = self.cluster_size -1
         for i in range(len(new_hyperparams)):
             if new_hyperparams[i] <= 1:
                 new_hyperparams[i] = 2
+            if new_hyperparams[i] > 100:
+                new_hyperparams[i] = 100
         new_gen = self.genome.copy()
         not_finished = True 
         
@@ -48,10 +55,11 @@ class Solution:
 
 
 class ParallelHillClimber:
-    def __init__(self, classifier, pop_size, num_gens, cluster_size, fitness_file, seed):
+    def __init__(self, pop_size, num_gens, cluster_size, fitness_file, seed, ml_model):
+        self.seed = seed 
+        self.ml_model = ml_model
         np.random.seed(seed)
-        os.system("del fitness.csv") 
-        self.classifier= classifier 
+        # os.system("del fitness.csv") 
         self.pop_size = pop_size
         self.num_gens = num_gens
         self.cluster_size = cluster_size
@@ -72,12 +80,17 @@ class ParallelHillClimber:
         data_all1= data_all.replace(r'^\s*$',np.nan, regex=True)
         data_all1= data_all1.astype(float)
 
+        data_all1.loc[data_all1['H4TO5'] >=25, 'H4TO5'] = 30
+        data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
+        data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
+        data_all1.loc[data_all1['H4TO5'] <5, 'H4TO5'] = 0
+        data_all1.dropna(subset=['H4TO5'])
         for col in data_all1:
             data_all1[col].fillna(data_all1[col].mode()[0], inplace=True)
         return data_all1
     
     def evolve(self):
-        f = open(self.fitness_file, "a")
+        f = open(self.fitness_file, "w")
         f.write("{},{},{},{},{},{}\n".format("curr_gen", "fitness", "genome","min_samples_leaf", "min_samples_split", "max_features"))
         f.close()
         self.population = self.create_initial_population()
@@ -113,7 +126,7 @@ class ParallelHillClimber:
         for i in range(self.pop_size):
             min_samples_leaf=np.random.randint(2,100)
             min_samples_split=np.random.randint(3,100)
-            max_features=np.random.randint(2,200)
+            max_features=np.random.randint(2,self.cluster_size)
             genome = list(np.random.choice(self.all_features, size = self.cluster_size, replace = False))
             fitness = self.get_fitness(genome, [min_samples_leaf,min_samples_split, max_features])
             sln = Solution(self.cluster_size, fitness =fitness,min_samples_leaf=min_samples_leaf,min_samples_split=min_samples_split, max_features=max_features )
@@ -131,20 +144,29 @@ class ParallelHillClimber:
         '''get the preformance of a given genome 
         for the ML model of interest (currently decision tree classifier
         returns: preformance score'''
-        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = 0) 
-        if self.classifier== 'tree':
-            decision_tree= DecisionTreeClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
-            decision_tree.fit(x_train, y_train)
+        
+        x_train, x_test, y_train, y_test = train_test_split(self.data[genome], self.data.iloc[:, 226:], test_size = 0.33, random_state = self.seed)         
+        if self.ml_model == "random_forest":                         
+            rf= RandomForestClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+            rf.fit(x_train, np.ravel(y_train))
+            score= rf.score(x_test, y_test)
+        if self.ml_model == "decision_tree":    
+            decision_tree= DecisionTreeClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
+            decision_tree.fit(x_train, np.ravel(y_train))
             score= decision_tree.score(x_test, y_test)
-        elif self.classifier== 'forest':
-            random_forest= RandomForestClassifier(random_state= 0,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2])
-            random_forest.fit(x_train, np.ravel(y_train))
-            score= decision_tree.score(x_test, y_test)
-        return score 
+        if self.ml_model == "log_regression":
+            #xtrain = x_train.to_numpy(dtype='int')
+            #ytrain = y_train.to_numpy(dtype='int').reshape(len(y_train), 1)
+            #xtest = x_test.to_numpy()
+            #ytest= y_test.to_numpy().flatten()
+            #score = hc_logistic_regression(xtrain, ytrain, xtest, ytest, eta=.1, iters = 10, threshold=25)
+            clf = LogisticRegression(random_state=0, max_iter=1000)
+            clf.fit(x_train, y_train.astype('int32'))
+            score = clf.score(x_test, y_test.astype('int32').to_numpy().reshape(len(y_test)))
+        return score
 
-phc_d = ParallelHillClimber(classifier= 'tree', pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
-phc_f = ParallelHillClimber(classifier= 'forest', pop_size=100, num_gens=300, cluster_size=10,fitness_file="fitness.csv", seed = 0)
-best_d = phc_d.evolve()
-best_f = phc_f.evolve()
 
+phc_l = ParallelHillClimber(ml_model="log_regression", pop_size=100, num_gens=300, cluster_size=10, fitness_file="fitness.csv", seed=0)
+best_l = phc_l.evolve()
+print(best_l)
 

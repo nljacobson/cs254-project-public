@@ -16,6 +16,8 @@ def normalize(df):
 
 def hypothesis(x, theta):
     h = 1 / (1 + np.exp(-np.matmul(x, theta)))
+    # Preventing hypothesis from maxing out
+    h[np.where(h == 1)] = .999
     return h
 
 
@@ -29,8 +31,7 @@ def calcLogRegressionCost(x, y, theta):
     output: return the cost value.
     """
     m = x.shape[0]
-    cost = (1 / m) * (- np.matmul(y.transpose(), np.log(hypothesis(x, theta))) - np.matmul((1 - y).transpose(), np.log(
-        1 - hypothesis(x, theta))))
+    cost = (1 / m) * (- np.matmul(y.transpose(), np.log(hypothesis(x, theta))) - np.matmul((1 - y).transpose(), np.log(1 - hypothesis(x, theta))))
     return cost
 
 
@@ -88,8 +89,8 @@ def logistic_regression(features, eta, iters, threshold):
         x[:, i] = normalize(x[:, i])
     # Split data
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.33)
-    y_train = y_train.to_numpy().reshape(len(y_train), 1)
-    y_test = y_test.to_numpy().reshape(len(y_test), 1)
+    y_train = y_train.to_numpy().reshape(len(y_train), 1).astype(int)
+    y_test = y_test.to_numpy().reshape(len(y_test), 1).astype(int)
     # Initialize weights
     theta = np.zeros((x.shape[1], 1)).astype(int)
     theta, cost = logRegressionGradientDescent(x_train, y_train, theta, eta, iters)
@@ -109,8 +110,30 @@ def logistic_regression(features, eta, iters, threshold):
     clf = LogisticRegression(random_state=0, max_iter = 10000).fit(x_train, y_train.ravel())
     sklearn_guesses = clf.predict_proba(x_test)
     sklearn_score = np.dot(sklearn_guesses[sklearn_guesses > .5], y_test) / len(y_test)
-    return score / len(y_test), sklearn_score
+    return score / len(y_test)
 
-score, sklearn_score= logistic_regression(wave_one_features, eta=1, iters=1000, threshold=25)
-print(score)
-print(sklearn_score)
+def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters, threshold):
+    x_train = np.nan_to_num(x_train)
+    # set with threshold
+
+
+    # Initialize weights
+    theta = np.zeros((x_train.shape[1], 1)).astype(int)
+    theta, cost = logRegressionGradientDescent(x_train, y_train, theta, eta, iters)
+    score = 0
+    true_pos = 0
+    true_neg = 0
+    for i in range(len(y_test)):
+        # True positive
+        if hypothesis(x_test[i], theta) > .5 and y_test[i]:
+            score += 1
+            true_pos += 1
+        # true negative
+        if hypothesis(x_test[i], theta) <= .5 and not y_test[i]:
+            score += 1
+            true_neg += 1
+    print(score/len(y_test))
+    return score / len(y_test)
+
+#score = logistic_regression(wave_one_features, eta=.1, iters=1000, threshold=25)
+#print(score)
