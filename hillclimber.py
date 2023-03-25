@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 
@@ -76,7 +77,7 @@ class ParallelHillClimber:
         data_all1= data_all.replace(r'^\s*$',np.nan, regex=True)
         data_all1= data_all1.astype(float)
 
-        data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
+        # data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
         data_all1.loc[data_all1['H4TO5'].between(25,30), 'H4TO5'] = 30
         data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
         data_all1.loc[data_all1['H4TO5'].between(0,5), 'H4TO5'] = 0
@@ -151,5 +152,10 @@ class ParallelHillClimber:
             decision_tree= DecisionTreeClassifier(random_state= self.seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
             decision_tree.fit(x_train, np.ravel(y_train))
             score= decision_tree.score(x_test, y_test)
+        if self.ml_model == "log_regression":
+            clf = LogisticRegression(random_state=self.seed, max_iter=10000)
+            clf.fit(x_train, np.ravel(y_train))
+            y_test = y_test.values.astype(int)
+            score = clf.score(x_test, y_test)
         return score 
 

@@ -11,10 +11,10 @@ import seaborn as sns
 from sklearn.metrics import RocCurveDisplay
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import LabelBinarizer
-
+from sklearn.linear_model import LogisticRegression
 
 def plot_all_data_over_time():
-    csvs = glob("hc_data/r*")
+    csvs = glob("hc_data/l*")
     NUM_COLORS = len(csvs)
     cm = plt.get_cmap('nipy_spectral')
     fig = plt.figure()
@@ -32,8 +32,8 @@ def plot_all_data_over_time():
     plt.legend(title = "N. Features", loc=2, prop={'size': 6}) 
     plt.xlabel("Evolutionary Time")
     plt.ylabel("Fitness (Score)")
-    plt.title("Random F. Evolution Over Time")
-    plt.savefig("rf_evolution_overtime")
+    plt.title("Log. Reg. Evolution Over Time")
+    plt.savefig("lg_evolution_overtime")
 
 def gen_df():
     '''creates data base'''
@@ -60,11 +60,11 @@ def gen_df():
 def regenerate_classifier(genome, seed, hyperparams):
     data = gen_df()
     x_train, x_test, y_train, y_test = train_test_split(data[genome], data.iloc[:, 226:], test_size = 0.33, random_state = seed)                                  
-    rf= RandomForestClassifier(random_state= seed,min_samples_leaf=hyperparams[0], min_samples_split=hyperparams[1], max_features= hyperparams[2]) 
-    rf.fit(x_train, np.ravel(y_train))
-    print(rf.score(x_test, y_test))
-    y_pred_test = rf.predict(x_test)
-    return y_test, y_pred_test, y_train
+    classifier = LogisticRegression(random_state= seed) 
+    classifier.fit(x_train, np.ravel(y_train))
+    print(classifier.score(x_test, y_test))
+    y_pred_test = classifier.predict(x_test)
+    return y_test, y_pred_test, y_train, x_train, classifier
 
 def make_conf_matrix(y_test, y_pred_test, size, seed):
     confusion_matrix = metrics.confusion_matrix(y_test, y_pred_test)
@@ -72,19 +72,44 @@ def make_conf_matrix(y_test, y_pred_test, size, seed):
     ax = plt.axes()
     plt.figure()
     plot= sns.heatmap(matrix_df, annot=True, fmt='g', ax=ax, cmap="magma")
-    ax.set_title('Confusion Matrix: Random Forest')
+    ax.set_title('Confusion Matrix: Logistic Regression')
     ax.set_xlabel('Predicted label', fontsize=15)
     ax.set_xticklabels(['Nonsmoker', 'Casual Smoker', 'Daily Smoker'], rotation=45)
     ax.set_ylabel('True Label', fontsize=15)
     ax.set_yticklabels(['Nonsmoker', 'Casual Smoker', 'Daily Smoker'], rotation=0)
     fig1= plot.get_figure()
-    fig1.savefig("hc_plots/rf_seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
+    fig1.savefig("hc_plots/log_seed{}_nfeatures{}_conf_matrix.png".format(seed, size), bbox_inches='tight')
 
-def make_ROC_plot(y_train, y_test):
-    pass 
+def make_ROC_plot(y_train, y_test, x_train, classifier):
+    y_score= classifier.predict_proba(x_train)
+    print(y_score.shape, y_train.shape, y_test.shape)
+    label_binarizer = LabelBinarizer().fit(y_train)
+    y_onehot_test = label_binarizer.transform(y_test)
+
+    class_of_interest1= label_binarizer.classes_[2] #daily smokers
+    class_of_interest2= label_binarizer.classes_[1] #casual smokers
+    class_of_interest3= label_binarizer.classes_[0] #non smokers
+
+    class_id1 = np.flatnonzero(label_binarizer.classes_ == class_of_interest1)[0]
+    class_id2 = np.flatnonzero(label_binarizer.classes_ == class_of_interest2)[0]
+    class_id3 = np.flatnonzero(label_binarizer.classes_ == class_of_interest3)[0]
+
+    RocCurveDisplay.from_predictions(
+        y_onehot_test[:, class_id1],
+        y_score[:, class_id1],
+        name="Daily Smokers vs rest",
+        color="darkorange",
+    )
+    plt.plot([0, 1], [0, 1], "k--", label="chance level (AUC = 0.5)")
+    plt.axis("square")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("One-vs-Rest ROC curves:\nDaily Smokers vs (Casual and NonSmokers)")
+    plt.legend()
+    plt.savefig("hc_plots/ROC_curve_dtree_dailysmokers", bbox_inches='tight')
 
 def regenerate_all_classifiers():
-    csvs = glob("hc_data/r*")
+    csvs = glob("hc_data/l*")
     seed = int(csvs[0][-5])
     for c in csvs:
         file = open(c, "r")
@@ -92,7 +117,8 @@ def regenerate_all_classifiers():
         features = [feature.strip("' ") for feature in line.split("[")[1].split("]")[0].split(",")]
         hyper_params = [int(n) for n in line.split("[")[1].split("]")[1].split(",")[1:]]
         print(c)
-        y_test, y_pred_test, y_train = regenerate_classifier(features, seed, hyper_params)
+        y_test, y_pred_test, y_train, x_train, classifier = regenerate_classifier(features, seed, hyper_params)
+        # make_ROC_plot(y_train, y_test, x_train, classifier)
         make_conf_matrix(y_test, y_pred_test, c[-12:-10], seed)
 
 
