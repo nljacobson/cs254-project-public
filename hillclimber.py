@@ -160,9 +160,10 @@ class ParallelHillClimber:
             #xtest = x_test.to_numpy()
             #ytest= y_test.to_numpy().flatten()
             #score = hc_logistic_regression(xtrain, ytrain, xtest, ytest, eta=.1, iters = 10, threshold=25)
-            clf = LogisticRegression(random_state=0, max_iter=1000)
-            clf.fit(x_train, y_train.astype('int32'))
-            score = clf.score(x_test, y_test.astype('int32').to_numpy().reshape(len(y_test)))
+            clf = LogisticRegression(random_state=0, max_iter=10000)
+            clf.fit(x_train, y_train.astype('int32').values.ravel())
+            y_test = y_test.values.astype(int)
+            score = clf.score(x_test, y_test)
         return score
 
 

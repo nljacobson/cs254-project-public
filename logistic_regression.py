@@ -108,8 +108,8 @@ def logistic_regression(features, eta, iters, threshold):
             score += 1
             true_neg += 1
     clf = LogisticRegression(random_state=0, max_iter = 10000).fit(x_train, y_train.ravel())
-    sklearn_guesses = clf.predict_proba(x_test)
-    sklearn_score = np.dot(sklearn_guesses[sklearn_guesses > .5], y_test) / len(y_test)
+    sklearn_score = clf.score(x_test, y_test)
+    print(sklearn_score)
     return score / len(y_test)
 
 def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters, threshold):
@@ -132,7 +132,7 @@ def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters, thresho
         if hypothesis(x_test[i], theta) <= .5 and not y_test[i]:
             score += 1
             true_neg += 1
-    print(score/len(y_test))
+    print(score /len(y_test))
     return score / len(y_test)
 
 #score = logistic_regression(wave_one_features, eta=.1, iters=1000, threshold=25)
