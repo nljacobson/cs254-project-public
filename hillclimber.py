@@ -80,9 +80,8 @@ class ParallelHillClimber:
         # data_all1.loc[data_all1['H4TO5'] >=31, 'H4TO5'] = 'NaN'
         data_all1.loc[data_all1['H4TO5'].between(25,30), 'H4TO5'] = 30
         data_all1.loc[data_all1['H4TO5'].between(5,25), 'H4TO5'] = 15
-        data_all1.loc[data_all1['H4TO5'].between(0,5), 'H4TO5'] = 0
+        data_all1.loc[data_all1['H4TO5'] <5, 'H4TO5'] = 0
         data_all1.dropna(subset=['H4TO5'])
-
         for col in data_all1:
             data_all1[col].fillna(data_all1[col].mode()[0], inplace=True)
         return data_all1
