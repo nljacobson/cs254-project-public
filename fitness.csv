@@ -1,0 +1,2 @@
+curr_gen,fitness,genome,min_samples_leaf,min_samples_split,max_features
+0,0.7577014218009479,['H2FV3', 'H2FS9', 'H2PF10', 'H2PF30', 'H2FS1', 'H2ED13', 'H2TO26', 'H2PF7', 'H1PF16', 'H2WP3'],46,50,7
