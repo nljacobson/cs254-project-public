@@ -14,14 +14,12 @@ def normalize(df):
     return 1 / max_value * df
 
 
-def hypothesis(x, theta):
-    h = 1 / (1 + np.exp(-np.matmul(x, theta)))
-    # Preventing hypothesis from maxing out
-    h[np.where(h == 1)] = .999
+def hypothesis(X, theta):
+    h = 1/(1 + np.exp(-np.dot(X, theta)))
     return h
 
 
-def calcLogRegressionCost(x, y, theta):
+def calcLogRegressionCost(X, Y, theta):
     """
     Calculate Logistic Regression Cost
 
@@ -30,9 +28,10 @@ def calcLogRegressionCost(x, y, theta):
     theta: matrix of variable weights
     output: return the cost value.
     """
-    m = x.shape[0]
-    cost = (1 / m) * (- np.matmul(y.transpose(), np.log(hypothesis(x, theta))) - np.matmul((1 - y).transpose(), np.log(1 - hypothesis(x, theta))))
-    return cost
+    m = X.shape[0]
+    cost = (1 / m) * (- np.dot(Y.transpose(), np.log(hypothesis(X, theta))) - np.dot((1 - Y).transpose(),
+                                                                                     np.log(1 - hypothesis(X, theta))))
+    return cost[0][0]
 
 
 def logRegressionGradientDescent(X, Y, theta, eta, iters):
@@ -46,10 +45,10 @@ def logRegressionGradientDescent(X, Y, theta, eta, iters):
     iters: number of times to iterate the algorithm (epochs)
     output: return optimized theta and the cost array for each iteration (epoch).
     """
-    m = X.shape[0]
+    m = X.shape[1]
     cost = np.zeros(iters)
     for i in range(iters):
-        grad_j = (2 / m) * np.matmul(X.transpose(), (hypothesis(X, theta) - Y))
+        grad_j = (1 / m) * np.dot(X.T, (hypothesis(X, theta) - Y))
         theta = theta - eta * grad_j
         cost[i] = calcLogRegressionCost(X, Y, theta)
     return theta, cost
@@ -112,18 +111,19 @@ def logistic_regression(features, eta, iters, threshold):
     print(sklearn_score)
     return score / len(y_test)
 
-def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters, threshold):
+def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters):
     x_train = np.nan_to_num(x_train)
-    # set with threshold
-
-
     # Initialize weights
     theta = np.zeros((x_train.shape[1], 1)).astype(int)
     theta, cost = logRegressionGradientDescent(x_train, y_train, theta, eta, iters)
     score = 0
     true_pos = 0
     true_neg = 0
+    log_predict = []
     for i in range(len(y_test)):
+        # Assemble predictions
+        # print(hypothesis(x_test[i], theta)[0])
+        log_predict.append(round(hypothesis(x_test[i], theta)[0]))
         # True positive
         if hypothesis(x_test[i], theta) > .5 and y_test[i]:
             score += 1
@@ -132,8 +132,8 @@ def hc_logistic_regression(x_train, y_train, x_test, y_test, eta, iters, thresho
         if hypothesis(x_test[i], theta) <= .5 and not y_test[i]:
             score += 1
             true_neg += 1
-    print(score /len(y_test))
-    return score / len(y_test)
+    # print(log_predict)
+    return score / len(y_test), log_predict
 
 #score = logistic_regression(wave_one_features, eta=.1, iters=1000, threshold=25)
 #print(score)
